@@ -1,25 +1,99 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research Assignment 1"
+author: "Fidel Escalona"
+date: "May 11, 2017"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+## R Markdown
 
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
 
 
 
-## Imputing missing values
+
+We will first load the data from file activity.csv, expected to be in the working directory
+
+```{r activity}
+activity <- read.csv("activity.csv", na.strings="NA", sep = "," , stringsAsFactors=FALSE )
+
+```
+
+
+Display a histogram of the total number of steps taken per day. Calculate the daily mean and median of the total 
+
+```{r totalsteps}
+total <- aggregate(steps~date, activity, FUN="sum", na.action = na.omit)
+
+hist(total$steps, main = "Total daily steps", xlab = "Total daily steps", col = "gray")
+mean(total$steps)
+median(total$steps)
+
+
+```
+
+##
+
+PLotting the average daily activity pattern
+
+```{r average}
+meansteps <- aggregate(steps~interval, activity, FUN="mean", na.action = na.omit)
+plot( meansteps$interval,  meansteps$steps, type="l", xlab = "Interval", ylab = "Steps"  )
+
+```
+
+
+On average,  across all the days in the dataset, the folowing 5 minutes interval contains the maximum number of steps
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r meansteps1}
+meansteps[meansteps$steps == max(meansteps$steps),] 
+```
+
+
+Imputing missing values:
+ The following is the total number of missing values in the dataset
+
+```{r missingvalues}
+sum(is.na(activity))
+```
+
+We will replace these values with the average mean for the same time period 
+
+```{r replace}
+for(i in seq_len(nrow(activity))) {
+    if (is.na(activity$steps[i])){
+      activity$steps[i] <-  meansteps[which(meansteps$interval==activity$interval[i]),]$steps[1]
+   }
+}
+
+```
+
+As a result, there is a higher frequency of days around the daily steps mean
+
+```{r hist2}
+totalImput <- aggregate(steps~date, activity, FUN="sum")
+hist(totalImput$steps, main = "Total daily steps", xlab = "Total daily steps")
+mean(totalImput$steps)
+median(totalImput$steps)
+
+```
+
+
+The two plots below illustrate the differences in activity patterns between weekdays and weekends
+
+```{r weekend}
+activity$DayofWeek[weekdays(as.Date(activity$date)) %in% c("Sunday" , "Saturday") ] <- "weekend"
+activity$DayofWeek[ !(weekdays(as.Date(activity$date)) %in% c("Sunday" , "Saturday")) ] <- "weekday"
+activity$DayofWeek <- factor(activity$DayofWeek)
+
+par(mfrow = c(2, 1), mar=c(2,2,4,5))
+with(subset(activity, activity$DayofWeek == "weekend"), plot(interval, steps, type="l", main = "weekend"))
+with(subset(activity, activity$DayofWeek == "weekday"), plot(interval, steps, type="l",main = "weekday"))
+
+```
